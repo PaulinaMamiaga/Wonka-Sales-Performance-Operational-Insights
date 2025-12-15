@@ -41,13 +41,13 @@ Incorporate **customer profitability and loyalty analysis** to support long-term
 > Each question is addressed with **at least one dedicated slide**.
 
 ### 1️⃣ How to Increase Overall Profitability?
-**Owner:** Paulina  
+**Member:** Paulina  
 **Slide Title:** *General Profit vs Loss*
 
 ---
 
 ### 2️⃣ How to Review Product Pricing?
-**Owner:** Marisa  
+**Member:** Marisa  
 **Slide Title:** *Product Price Review*
 
 **Key Question:**
@@ -56,7 +56,7 @@ Incorporate **customer profitability and loyalty analysis** to support long-term
 ---
 
 ### 3️⃣ How to Scale Factories Efficiently?
-**Owner:** Cecile  
+**Member:** Cecile  
 **Slide Title:** *Factory Financial Figures*
 
 **Key Question:**
@@ -65,7 +65,7 @@ Incorporate **customer profitability and loyalty analysis** to support long-term
 ---
 
 ### 4️⃣ Customer Fidelity vs Profitability
-**Owner:** Samia  
+**Member:** Samia  
 **Slide Title:** *Customer Orders vs Profitability*
 
 **Key Question:**
