@@ -1,5 +1,7 @@
 # 🍫 Wonka-Sales-Performance-Operational-Insights
 
+## Presentation link: https://www.canva.com/design/DAG7ZZt8aig/OIe7_etJAulZghvSpavEHg/edit
+
 ## 📊 Project Objective
 Analyze and improve profitability for a **B2B supplier** (chocolate, sugar, and related products) by evaluating **products, factories, and customers** using **Python and SQL**, supported by data visualizations and business insights.
 
