@@ -485,7 +485,7 @@ GROUP BY p.`Product Name`, ffc.`Product ID`
 ORDER BY sales DESC;
 
 -- ------------------------------------------------------------------------------------------
--- 4.10 Chart Monitor -----------------------------------------------------------
+-- 4.11 Chart Monitor -----------------------------------------------------------
 -- To monitor products with extreme gross margins (>= 80%)
 -- Not a "Top" ranking: it’s a flagged list for investigation.
 
@@ -515,7 +515,7 @@ ORDER BY avg_margin_pct DESC , num_records DESC;
 -- ------------------------------------------------------------------------------------------
 
 -- ------------------------------------------------------------------------------------------
--- 4.11 Chart Top 10 factories by Gross Profit within the high-margin universe (>=40% and <=100%)
+-- 4.12 Chart Top 10 factories by Gross Profit within the high-margin universe (>=40% and <=100%)
 -- Ranking metric: total gross profit (DESC)
 
 WITH base AS (
@@ -559,7 +559,7 @@ WHERE profit_rank <= 10
 ORDER BY profit_rank;
 
 -- ----------------------------------------------------------------------------
--- 4.12 Chart Top 10 factories per margin band (60–69.99% and 70–79.99%)
+-- 4.13 Chart Top 10 factories per margin band (60–69.99% and 70–79.99%)
 -- Ranking metric (within each band): total gross profit (DESC)
 
 WITH base AS (
@@ -602,7 +602,7 @@ ORDER BY margin_band, rn;
 
 
 -- ---------------------------------------------------------
--- 4.13 Chart Top 5 factories profit share (≥40%)
+-- 4.14 Chart Top 5 factories profit share (≥40%)
 -- To see how dependent is total profit on just a handful of products
 
 SELECT
@@ -617,7 +617,7 @@ GROUP BY ffc.`Factory ID`
 ORDER BY gross_profit DESC;
 
 -- ----------------------------------------------------------------------------
--- 4.14 Chart Monitor ----------------------------------------------------
+-- 4.15 Chart Monitor ----------------------------------------------------
 -- To Monitor view for factories with extreme margins (>=80% and <=100%)
 -- Not a "Top 10": this is a watchlist / anomaly surface.
 
@@ -637,7 +637,7 @@ GROUP BY ffc.`Factory ID`
 ORDER BY avg_margin_pct DESC, num_records DESC;
 
 -- ----------------------------------------------------------------------------
--- 4.15 Chart Cross product–factory dependency ------------------------------
+-- 4.16 Chart Cross product–factory dependency ------------------------------
 -- -----------------------------------------------------------------------------
 -- 1) Identify Top 10 products by total gross profit (within >=40% margin universe)
 WITH top_products AS (
@@ -690,7 +690,7 @@ FROM factory_contrib
 ORDER BY `Product Name`, total_gross_profit DESC;
 
 -- ----------------------------------------------------------------------------
--- 4.16 Chart Margin stability over time (Factory margin band distribution by month)
+-- 4.17 Chart Margin stability over time (Factory margin band distribution by month)
 -- Shows whether factories shift between margin bands across time.
 -- ------------------------------------------------------------------
 WITH base AS (
@@ -737,7 +737,7 @@ GROUP BY `Factory ID`, month_start, margin_band
 ORDER BY `Factory ID`, month_start, margin_band;
 
 -- ----------------------------------------------------------------------------
--- 4.17 Chart Cost structure diagnostics (Factory efficiency / unit economics)
+-- 4.18 Chart Cost structure diagnostics (Factory efficiency / unit economics)
 -- Compares cost per transaction and profit per transaction across factories.
 -- -----------------------------------------------------------------------------
 WITH base AS (
@@ -776,10 +776,96 @@ ORDER BY avg_profit_per_txn DESC, gross_margin_pct DESC;
 
 -- ----------------------------------------------------------------------------
 
+/* 
+INSIGHT 3: Profit Concentration across Factories + Products
+One output table with:
+- entity_type (Factory / Product)
+- entity_name, entity_id
+- txn volume, % volume share
+- sales, cost, gross profit, % profit share
+- gross margin %
+*/
 
+WITH base AS (
+  SELECT
+    ffc.`Factory ID`      AS factory_id,
+    ffc.`Product ID`      AS product_id,
+    ffc.`Sales`           AS sales,
+    ffc.`Cost`            AS cost,
+    ffc.`Gross Profit`    AS gross_profit
+  FROM v_financial_figures_clean ffc
+),
 
+totals AS (
+  SELECT
+    COUNT(*)              AS total_txns,
+    SUM(sales)            AS total_sales,
+    SUM(cost)             AS total_cost,
+    SUM(gross_profit)     AS total_profit
+  FROM base
+),
 
+factory_agg AS (
+  SELECT
+    'Factory' AS entity_type,
+    b.factory_id AS entity_id,
+    b.factory_id AS entity_name,      -- Factory name seems stored in `Factory ID` (text). If you have a Factory table, replace with joined name.
+    COUNT(*) AS num_records,
+    SUM(b.sales) AS total_sales,
+    SUM(b.cost) AS total_cost,
+    SUM(b.gross_profit) AS total_gross_profit
+  FROM base b
+  GROUP BY b.factory_id
+),
 
+product_agg AS (
+  SELECT
+    'Product' AS entity_type,
+    b.product_id AS entity_id,
+    p.`Product Name` AS entity_name,
+    COUNT(*) AS num_records,
+    SUM(b.sales) AS total_sales,
+    SUM(b.cost) AS total_cost,
+    SUM(b.gross_profit) AS total_gross_profit
+  FROM base b
+  JOIN `Product` p
+    ON p.`Product ID` = b.product_id
+  GROUP BY b.product_id, p.`Product Name`
+),
 
+combined AS (
+  SELECT * FROM factory_agg
+  UNION ALL
+  SELECT * FROM product_agg
+)
+
+SELECT
+  c.entity_type,
+  c.entity_name,
+  c.entity_id,
+
+  -- Transaction volume
+  c.num_records,
+  ROUND(100.0 * c.num_records / NULLIF(t.total_txns, 0), 2) AS pct_transaction_volume,
+
+  -- Financials
+  ROUND(c.total_cost, 2) AS total_cost,
+  ROUND(c.total_sales, 2) AS total_sales,
+  ROUND(c.total_gross_profit, 2) AS total_gross_profit,
+
+  -- Shares
+  ROUND(100.0 * c.total_gross_profit / NULLIF(t.total_profit, 0), 2) AS pct_profit_share,
+  ROUND(100.0 * c.total_sales       / NULLIF(t.total_sales, 0), 2)  AS pct_sales_share,
+
+  -- Margin %
+  ROUND(100.0 * c.total_gross_profit / NULLIF(c.total_sales, 0), 2) AS gross_margin_pct
+
+FROM combined c
+CROSS JOIN totals t
+
+-- If you want to focus ONLY on the biggest contributors:
+-- WHERE c.total_gross_profit > 0
+
+ORDER BY c.total_gross_profit DESC;
 
 
